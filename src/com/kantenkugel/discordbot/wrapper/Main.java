@@ -1,6 +1,5 @@
 package com.kantenkugel.discordbot.wrapper;
 
-import com.sun.deploy.util.StringUtils;
 import org.json.JSONObject;
 
 import java.io.BufferedWriter;
@@ -21,6 +20,8 @@ public class Main {
     private static final Path backupFile = Paths.get("DiscordBotJDA_backup.jar");
     private static final Path current = Paths.get("");
 
+    private static final int CONFIG_VERSION = 2;
+
     /*
     Command-string for bot:
     String[0] -> error loading login-informations from config-file
@@ -37,42 +38,6 @@ public class Main {
      */
     private static final String[] START_BOT_COMMAND;
     private static Thread updateChecker = null;
-
-    static {
-        Path cfgFile = Paths.get("loginConfig.json");
-        JSONObject config = null;
-        if(Files.exists(cfgFile)) {
-            try {
-                Optional<String> join = Files.readAllLines(cfgFile, StandardCharsets.UTF_8).stream().map(String::trim).reduce((s1, s2) -> s1 + s2);
-                if(join.isPresent()) {
-                    config = new JSONObject(join.get());
-                }
-            } catch(Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-        if(config == null) {
-            config = new JSONObject().put("email", "").put("password", "");
-            try {
-                Files.write(cfgFile, Arrays.asList(config.toString(4).split("\n")), StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
-            } catch(IOException e) {
-                e.printStackTrace();
-            }
-            System.out.println("Created login-config file... plese populate it!");
-            START_BOT_COMMAND = new String[0];
-        } else {
-            String email = config.getString("email").trim();
-            String pass = config.getString("password");
-            if(email.isEmpty() || pass.isEmpty()) {
-                System.out.println("Please populate the config-file with your login-informations!");
-                START_BOT_COMMAND = new String[0];
-            } else {
-                START_BOT_COMMAND = new String[]{
-                        "java", "-jar", botFile.toString(), email, pass, Long.toString(System.currentTimeMillis())
-                };
-            }
-        }
-    }
 
     public static List<VersionFile.VersionEntry> versions = new ArrayList<>(0);
     private static BufferedWriter botWriter;
@@ -199,6 +164,71 @@ public class Main {
             Files.copy(current.resolve(backupFile), current.resolve(botFile), StandardCopyOption.REPLACE_EXISTING);
         } catch(IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    static {
+        Path cfgFile = Paths.get("loginConfig.json");
+        JSONObject config = null;
+        if(Files.exists(cfgFile)) {
+            try {
+                Optional<String> join = Files.readAllLines(cfgFile, StandardCharsets.UTF_8).stream().map(String::trim).reduce((s1, s2) -> s1 + s2);
+                if(join.isPresent()) {
+                    config = new JSONObject(join.get());
+                }
+            } catch(Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+        if(config == null) {
+            config = new JSONObject().put("email", "").put("password", "")
+                    .put("isBot", true).put("botToken", "")
+                    .put("version", CONFIG_VERSION);
+            try {
+                Files.write(cfgFile, Arrays.asList(config.toString(4).split("\n")), StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Created login-config file... plese populate it!");
+            START_BOT_COMMAND = new String[0];
+        } else if(!config.has("version") || config.getInt("version") != CONFIG_VERSION) {
+            if(!config.has("version")) config.put("version", 1);
+            switch(config.getInt("version")) {
+                case 1:
+                    config.put("isBot", false).put("botToken", "");
+                    break;
+            }
+            config.put("version", CONFIG_VERSION);
+            try {
+                Files.write(cfgFile, Arrays.asList(config.toString(4).split("\n")), StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Updated login-config. Pleas check it before restarting!");
+            START_BOT_COMMAND = new String[0];
+        } else {
+            if(config.getBoolean("isBot")) {
+                String botToken = config.getString("botToken");
+                if(botToken.isEmpty()) {
+                    System.out.println("Please populate the config-file with your login-informations!");
+                    START_BOT_COMMAND = new String[0];
+                } else {
+                    START_BOT_COMMAND = new String[]{
+                            "java", "-jar", botFile.toString(), botToken, "-", Long.toString(System.currentTimeMillis())
+                    };
+                }
+            } else {
+                String email = config.getString("email").trim();
+                String pass = config.getString("password");
+                if(email.isEmpty() || pass.isEmpty()) {
+                    System.out.println("Please populate the config-file with your login-informations!");
+                    START_BOT_COMMAND = new String[0];
+                } else {
+                    START_BOT_COMMAND = new String[]{
+                            "java", "-jar", botFile.toString(), email, pass, Long.toString(System.currentTimeMillis())
+                    };
+                }
+            }
         }
     }
 }
