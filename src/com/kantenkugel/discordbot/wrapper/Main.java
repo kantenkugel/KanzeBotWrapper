@@ -36,6 +36,7 @@ public class Main {
         5+ MULTIPLE/NONE strings describing the changelog of this version
      */
     private static final String[] START_BOT_COMMAND;
+    private static Thread updateChecker = null;
 
     static {
         Path cfgFile = Paths.get("loginConfig.json");
@@ -83,7 +84,7 @@ public class Main {
         System.out.println("Downloading current version of the Bot...");
         update();
         System.out.println("Starting update-checker...");
-        new UpdateChecker();
+        updateChecker = new UpdateChecker();
 
 
         System.out.println("Starting the Bootstrap Launch loop");
@@ -121,6 +122,12 @@ public class Main {
                         System.out.println("Uptating bot...");
                         update();
                         updateStatus = Status.SUCCESS;
+                        if(!updateChecker.isAlive()) {
+                            System.out.println("UpdateChecker was dead... restarting!");
+                            updateChecker = new UpdateChecker();
+                        } else {
+                            System.out.println("UpdateChecker was alive.");
+                        }
                         break;
                     case RESTART_CODE:
                         System.out.println("Restarting");
@@ -174,7 +181,7 @@ public class Main {
             if(Files.exists(current.resolve(botFile))) {
                 Files.move(current.resolve(botFile), current.resolve(backupFile), StandardCopyOption.REPLACE_EXISTING);
             }
-            VersionFile versionFile = VersionFile.get();
+            VersionFile versionFile = VersionFile.get(true);
             try {
                 URL url = new URL(versionFile.downloadUrl);
                 Files.copy(url.openStream(), current.resolve(botFile), StandardCopyOption.REPLACE_EXISTING);

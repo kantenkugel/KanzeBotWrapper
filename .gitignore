@@ -1,0 +1,7 @@
+# Created by .ignore support plugin (hsz.mobi)
+*.json
+KanzeBotWrapper.iml
+KanzeBotWrapper.ipr
+KanzeBotWrapper.iws
+DiscordBotJDA*
+src/META-INF

@@ -1,9 +1,10 @@
 package com.kantenkugel.discordbot.wrapper;
 
 public class UpdateChecker extends Thread {
-    private static final long CHECK_INTERVAL = 60*1000; //1min
+    private static final long CHECK_INTERVAL = 5*60*1000; //5min
 
     public UpdateChecker() {
+        setPriority(Thread.NORM_PRIORITY + 1);
         setDaemon(true);
         start();
     }
