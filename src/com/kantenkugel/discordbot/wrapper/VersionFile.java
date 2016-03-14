@@ -3,7 +3,9 @@ package com.kantenkugel.discordbot.wrapper;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -40,7 +42,10 @@ public class VersionFile {
     private static VersionFile fetch() {
         try {
             URL url = new URL(VERSION_FILE_URL);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
+            URLConnection urlConnection = url.openConnection();
+            urlConnection.setConnectTimeout(10*1000);
+            urlConnection.setReadTimeout(10*1000);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
             String dl = reader.readLine(); //first line is download-link
             List<VersionEntry> versions = new LinkedList<>();
             String changelog = null;
