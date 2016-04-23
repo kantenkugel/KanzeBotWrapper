@@ -87,12 +87,6 @@ public class Main {
                         System.out.println("Uptating bot...");
                         update();
                         updateStatus = Status.SUCCESS;
-                        if(!updateChecker.isAlive()) {
-                            System.out.println("UpdateChecker was dead... restarting!");
-                            updateChecker = new UpdateChecker();
-                        } else {
-                            System.out.println("UpdateChecker was alive.");
-                        }
                         break;
                     case RESTART_CODE:
                         System.out.println("Restarting");
