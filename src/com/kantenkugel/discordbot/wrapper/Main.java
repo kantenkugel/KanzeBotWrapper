@@ -20,7 +20,7 @@ public class Main {
     private static final Path backupFile = Paths.get("DiscordBotJDA_backup.jar");
     private static final Path current = Paths.get("");
 
-    private static final int CONFIG_VERSION = 2;
+    private static final int CONFIG_VERSION = 3;
 
     /*
     Command-string for bot:
@@ -29,15 +29,13 @@ public class Main {
         "java",
         "-jar",
         "botFile.jar",
-        0  email,
-        1  password,
-        2  system-time of wrapper-start (for uptime),
-        3  success-indicator (true/false/"-")
-        4  version-number
-        5+ MULTIPLE/NONE strings describing the changelog of this version
+        0  bot-token,
+        1  system-time of wrapper-start (for uptime),
+        2  success-indicator (true/false/"-")
+        3  version-number
+        4+ MULTIPLE/NONE strings describing the changelog of this version
      */
     private static final String[] START_BOT_COMMAND;
-    private static Thread updateChecker = null;
 
     public static List<VersionFile.VersionEntry> versions = new ArrayList<>(0);
     private static BufferedWriter botWriter;
@@ -49,8 +47,6 @@ public class Main {
         System.out.println("Downloading current version of the Bot...");
         update();
         System.out.println("Starting update-checker...");
-        updateChecker = new UpdateChecker();
-
 
         System.out.println("Starting the Bootstrap Launch loop");
         Status updateStatus = Status.NONE;
@@ -58,6 +54,7 @@ public class Main {
             while(true) {
                 ProcessBuilder builder = new ProcessBuilder();
                 builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                builder.redirectError(ProcessBuilder.Redirect.INHERIT);
                 builder.command(START_BOT_COMMAND);
                 builder.command().add(updateStatus == Status.NONE ? "-" : Boolean.toString(updateStatus.isSuccess()));
                 VersionFile.VersionEntry entry = (versions.isEmpty() || (updateStatus == Status.FAILED && versions.size() == 1)) ?
@@ -175,8 +172,7 @@ public class Main {
             }
         }
         if(config == null) {
-            config = new JSONObject().put("email", "").put("password", "")
-                    .put("isBot", true).put("botToken", "")
+            config = new JSONObject().put("botToken", "")
                     .put("version", CONFIG_VERSION);
             try {
                 Files.write(cfgFile, Arrays.asList(config.toString(4).split("\n")), StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
@@ -191,6 +187,10 @@ public class Main {
                 case 1:
                     config.put("isBot", false).put("botToken", "");
                     break;
+                case 2:
+                    config.remove("email");
+                    config.remove("password");
+                    config.remove("isBot");
             }
             config.put("version", CONFIG_VERSION);
             try {
@@ -201,27 +201,14 @@ public class Main {
             System.out.println("Updated login-config. Pleas check it before restarting!");
             START_BOT_COMMAND = new String[0];
         } else {
-            if(config.getBoolean("isBot")) {
-                String botToken = config.getString("botToken");
-                if(botToken.isEmpty()) {
-                    System.out.println("Please populate the config-file with your login-informations!");
-                    START_BOT_COMMAND = new String[0];
-                } else {
-                    START_BOT_COMMAND = new String[]{
-                            "java", "-jar", botFile.toString(), botToken, "-", Long.toString(System.currentTimeMillis())
-                    };
-                }
+            String botToken = config.getString("botToken");
+            if(botToken.isEmpty()) {
+                System.out.println("Please populate the config-file with your login-informations!");
+                START_BOT_COMMAND = new String[0];
             } else {
-                String email = config.getString("email").trim();
-                String pass = config.getString("password");
-                if(email.isEmpty() || pass.isEmpty()) {
-                    System.out.println("Please populate the config-file with your login-informations!");
-                    START_BOT_COMMAND = new String[0];
-                } else {
-                    START_BOT_COMMAND = new String[]{
-                            "java", "-jar", botFile.toString(), email, pass, Long.toString(System.currentTimeMillis())
-                    };
-                }
+                START_BOT_COMMAND = new String[]{
+                        "java", "-jar", botFile.toString(), botToken, Long.toString(System.currentTimeMillis())
+                };
             }
         }
     }
